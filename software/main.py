@@ -7,13 +7,15 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 import pandas as pd
 
 '''
-    - tarpare colonna (togliere colonna)
-    - selezionarie le righe per data 
-    - pulsante generazione immagine
+    - selezionare le righe per data X
+    - pulsante generazione immagine X
     - che metodo di generazione
+    - crea sia le cartelle che le immagini (selezionando) X
+    - crea colonna Label
+    - tarpare colonna (togliere colonna)
     - selezionare le righe con data di inizio e fine oppure per intervalli (dalle due righe selezionate ogni quante bisogna generare le immagini)
+    
     - dire le percentuali per le parti di training, validation e testing
-    - crea sia le cartelle che le immagini (selezionando)
 '''
 class Application(TkinterDnD.Tk):
     def __init__(self):
@@ -21,8 +23,13 @@ class Application(TkinterDnD.Tk):
         self.title("CSV Viewer")
         self.main_frame = tk.Frame(self)
         self.main_frame.pack(fill="both", expand="true")
-        self.geometry("900x500")
+        self.set_window_size_to_screen()
         self.search_page = SearchPage(parent=self.main_frame)
+
+    def set_window_size_to_screen(self):
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
+        self.geometry(f"{screen_width}x{screen_height}")
 
 
 class DataTable(ttk.Treeview):
@@ -66,6 +73,7 @@ class DataTable(ttk.Treeview):
 
 
 class SearchPage(tk.Frame):
+
     def __init__(self, parent):
         super().__init__(parent)
         self.file_names_listbox = tk.Listbox(parent, selectmode=tk.SINGLE, background="darkgray")
@@ -87,9 +95,75 @@ class SearchPage(tk.Frame):
 
         self.path_map = {}
 
-        #Aggiunta di un pulsante
-        self.button = tk.Button(parent, text="Testo", command=self.on_button_click)
-        self.button.place(relx=0.1, rely=0.75, anchor="sw")
+        # Pulsante genera
+        self.button = tk.Button(parent, text="Genera", command=self.on_button_click, width=20, height=2, bd=2, highlightthickness=2, bg = "#a9a9a9")
+        self.button.place(relx=0.17, rely=0.95, anchor="sw")
+
+        # EditBox data inizio
+        font = ("Arial", 12)
+        self.default_text_data_inizio = "Data inizio: AAAA-MM-GG"
+        self.hint_color = "gray"  # Colore grigio chiaro per l'hint
+
+        self.edit_box_data_inizio = tk.Entry(parent, width=25, font=font)
+        self.edit_box_data_inizio.insert(0, self.default_text_data_inizio)
+        self.edit_box_data_inizio.config(foreground=self.hint_color)
+        self.edit_box_data_inizio.bind("<FocusIn>", self.remove_default_text_data_inizio)
+        self.edit_box_data_inizio.bind("<FocusOut>", self.restore_default_text_data_inizio)
+        self.edit_box_data_inizio.place(relx=0.01, rely=0.55, anchor="sw")
+
+        # EditBox data finale
+        self.default_text_data_fine = "Data fine: AAAA-MM-GG"
+
+        self.edit_box_data_fine = tk.Entry(parent, width=25, font=font)
+        self.edit_box_data_fine.insert(0, self.default_text_data_fine)
+        self.edit_box_data_fine.config(foreground=self.hint_color)
+        self.edit_box_data_fine.bind("<FocusIn>", self.remove_default_text_data_fine)
+        self.edit_box_data_fine.bind("<FocusOut>", self.restore_default_text_data_fine)
+        self.edit_box_data_fine.place(relx=0.01, rely=0.59, anchor="sw")
+
+        # Text tipo fi generazione: cartelle, immagini entrambi
+        self.text_generazione = tk.Text(parent, width=30, height=1, font=font, highlightthickness=0, background="#f0f0f0", bd=0)
+        self.text_generazione.insert(tk.END, "Vuoi generare file csv o immagini:")
+        self.text_generazione.place(relx=0.01, rely=0.75, anchor="sw")
+
+        # Radio button per il tipo di generazione
+        self.radio_var_generazione = tk.StringVar(value="vuoto")  # Imposta il valore iniziale su una stringa vuota
+
+        # radio button: file
+        self.radio_button_cartelle = tk.Radiobutton(parent, text="File", variable=self.radio_var_generazione,
+                                                    value="file", font=font)
+        self.radio_button_cartelle.place(relx=0.01, rely=0.8, anchor="sw")
+
+        # radio button: immagini
+        self.radio_button_immagini = tk.Radiobutton(parent, text="Immagini", variable=self.radio_var_generazione,
+                                                    value="Immagini", font=font)
+        self.radio_button_immagini.place(relx=0.07, rely=0.8, anchor="sw")
+
+        # radio button: entrambi
+        self.radio_button_entrambi = tk.Radiobutton(parent, text="Entrambi", variable=self.radio_var_generazione,
+                                                    value="entrambi", font=font)
+        self.radio_button_entrambi.place(relx=0.15, rely=0.8, anchor="sw")
+
+    def remove_default_text_data_fine(self, event):
+        if self.edit_box_data_fine.get() == self.default_text_data_fine:
+            self.edit_box_data_fine.delete(0, tk.END)
+            self.edit_box_data_fine.config(foreground="black")  # Cambia il colore del testo a nero
+
+    def restore_default_text_data_fine(self, event):
+        if not self.edit_box_data_fine.get():
+            self.edit_box_data_fine.insert(0, self.default_text_data_fine)
+            self.edit_box_data_fine.config(foreground=self.hint_color)  # Cambia il colore del testo all'hint color
+
+
+    def remove_default_text_data_inizio(self, event):
+        if self.edit_box_data_inizio.get() == self.default_text_data_inizio:
+            self.edit_box_data_inizio.delete(0, tk.END)
+            self.edit_box_data_inizio.config(foreground="black")  # Cambia il colore del testo a nero
+
+    def restore_default_text_data_inizio(self, event):
+        if not self.edit_box_data_inizio.get():
+            self.edit_box_data_inizio.insert(0, self.default_text_data_inizio)
+            self.edit_box_data_inizio.config(foreground=self.hint_color)  # Cambia il colore del testo all'hint color
 
     def drop_inside_list_box(self, event):
         file_paths = self._parse_drop_files(event.data)
