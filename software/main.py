@@ -6,7 +6,15 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 
 import pandas as pd
 
-
+'''
+    - tarpare colonna (togliere colonna)
+    - selezionarie le righe per data 
+    - pulsante generazione immagine
+    - che metodo di generazione
+    - selezionare le righe con data di inizio e fine oppure per intervalli (dalle due righe selezionate ogni quante bisogna generare le immagini)
+    - dire le percentuali per le parti di training, validation e testing
+    - crea sia le cartelle che le immagini (selezionando)
+'''
 class Application(TkinterDnD.Tk):
     def __init__(self):
         super().__init__()
