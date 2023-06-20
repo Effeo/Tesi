@@ -16,6 +16,12 @@ import pandas as pd
     - select rows with start and end date or intervals (from the two selected rows, how often images need to be generated) X
     - specify percentages for training, validation, and testing parts X
 '''
+
+
+'''
+block the resize
+
+'''
 class Application(TkinterDnD.Tk):
     def __init__(self):
         super().__init__()
@@ -209,6 +215,12 @@ class SearchPage(tk.Frame):
         self.edit_box_intervals.bind("<FocusOut>", self.restore_default_text_intervals)
         self.edit_box_intervals.place(relx=0.01, rely=0.725, anchor="sw")
 
+        # Remove column button
+        self.label = tk.Label(parent, text="Columns to have:", width=20, height=1,
+                                bd=2,
+                                highlightthickness=2, font=font)
+        self.label.place(relx=0.15, rely=0.552, anchor="sw")
+
     def remove_default_text_intervals(self, event):
         if self.edit_box_intervals.get() == self.default_text_intervals:
             self.edit_box_intervals.delete(0, tk.END)
@@ -334,6 +346,13 @@ class SearchPage(tk.Frame):
     def on_button_click_label(self):
         # Actions to be performed when the button is clicked
         print("Button clicked")
+
+    def on_button_click_remove_column(self):
+        # Actions to be performed when the button is clicked
+        global my_list_of_entries
+        for _ in range(4):
+            my_list_of_entries.append(tk.Entry(self.parent))
+            my_list_of_entries[-1].pack()
 
 if __name__ == "__main__":
     root = Application()
