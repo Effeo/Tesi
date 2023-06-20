@@ -7,15 +7,14 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 import pandas as pd
 
 '''
-    - selezionare le righe per data X
-    - pulsante generazione immagine X
-    - che metodo di generazione
-    - crea sia le cartelle che le immagini (selezionando) X
-    - crea colonna Label
-    - tarpare colonna (togliere colonna)
-    - selezionare le righe con data di inizio e fine oppure per intervalli (dalle due righe selezionate ogni quante bisogna generare le immagini)
-    
-    - dire le percentuali per le parti di training, validation e testing
+    - select rows by date X
+    - generate image button X
+    - generation method X
+    - create both folders and images (selecting) X
+    - create Label column X
+    - trim column (remove column)
+    - select rows with start and end date or intervals (from the two selected rows, how often images need to be generated) X
+    - specify percentages for training, validation, and testing parts X
 '''
 class Application(TkinterDnD.Tk):
     def __init__(self):
@@ -24,12 +23,16 @@ class Application(TkinterDnD.Tk):
         self.main_frame = tk.Frame(self)
         self.main_frame.pack(fill="both", expand="true")
         self.set_window_size_to_screen()
+        self.set_minimum_window_size()
         self.search_page = SearchPage(parent=self.main_frame)
 
     def set_window_size_to_screen(self):
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
         self.geometry(f"{screen_width}x{screen_height}")
+
+    def set_minimum_window_size(self):
+        self.wm_minsize(width=800, height=600)
 
 
 class DataTable(ttk.Treeview):
@@ -73,7 +76,6 @@ class DataTable(ttk.Treeview):
 
 
 class SearchPage(tk.Frame):
-
     def __init__(self, parent):
         super().__init__(parent)
         self.file_names_listbox = tk.Listbox(parent, selectmode=tk.SINGLE, background="darkgray")
@@ -82,88 +84,190 @@ class SearchPage(tk.Frame):
         self.file_names_listbox.dnd_bind("<<Drop>>", self.drop_inside_list_box)
         self.file_names_listbox.bind("<Double-1>", self._display_file)
 
-        #Search bar che a me non serve
-        '''
-        self.search_entrybox = tk.Entry(parent)
-        self.search_entrybox.place(relx=0.25, relwidth=0.75)
-        self.search_entrybox.bind("<Return>", self.search_table)
-        '''
-
         # Treeview
         self.data_table = DataTable(parent)
         self.data_table.place(rely=0, relx=0.25, relwidth=0.75, relheight=1)
-
         self.path_map = {}
 
-        # Pulsante genera
-        self.button = tk.Button(parent, text="Genera", command=self.on_button_click, width=20, height=2, bd=2, highlightthickness=2, bg = "#a9a9a9")
+        # Generate button
+        self.button = tk.Button(parent, text="Generate", command=self.on_button_click_generete, width=20, height=2, bd=2,
+                                highlightthickness=2, bg="#a9a9a9")
         self.button.place(relx=0.17, rely=0.95, anchor="sw")
 
-        # EditBox data inizio
+        # Start date edit box
         font = ("Arial", 12)
-        self.default_text_data_inizio = "Data inizio: AAAA-MM-GG"
-        self.hint_color = "gray"  # Colore grigio chiaro per l'hint
+        self.default_text_start_date = "Start Date: YYYY-MM-DD"
+        self.hint_color = "gray"  # Light gray color for the hint
 
-        self.edit_box_data_inizio = tk.Entry(parent, width=25, font=font)
-        self.edit_box_data_inizio.insert(0, self.default_text_data_inizio)
-        self.edit_box_data_inizio.config(foreground=self.hint_color)
-        self.edit_box_data_inizio.bind("<FocusIn>", self.remove_default_text_data_inizio)
-        self.edit_box_data_inizio.bind("<FocusOut>", self.restore_default_text_data_inizio)
-        self.edit_box_data_inizio.place(relx=0.01, rely=0.55, anchor="sw")
+        self.edit_box_start_date = tk.Entry(parent, width=25, font=font)
+        self.edit_box_start_date.insert(0, self.default_text_start_date)
+        self.edit_box_start_date.config(foreground=self.hint_color)
+        self.edit_box_start_date.bind("<FocusIn>", self.remove_default_text_start_date)
+        self.edit_box_start_date.bind("<FocusOut>", self.restore_default_text_start_date)
+        self.edit_box_start_date.place(relx=0.01, rely=0.55, anchor="sw")
 
-        # EditBox data finale
-        self.default_text_data_fine = "Data fine: AAAA-MM-GG"
+        # End date edit box
+        self.default_text_end_date = "End Date: YYYY-MM-DD"
 
-        self.edit_box_data_fine = tk.Entry(parent, width=25, font=font)
-        self.edit_box_data_fine.insert(0, self.default_text_data_fine)
-        self.edit_box_data_fine.config(foreground=self.hint_color)
-        self.edit_box_data_fine.bind("<FocusIn>", self.remove_default_text_data_fine)
-        self.edit_box_data_fine.bind("<FocusOut>", self.restore_default_text_data_fine)
-        self.edit_box_data_fine.place(relx=0.01, rely=0.59, anchor="sw")
+        self.edit_box_end_date = tk.Entry(parent, width=25, font=font)
+        self.edit_box_end_date.insert(0, self.default_text_end_date)
+        self.edit_box_end_date.config(foreground=self.hint_color)
+        self.edit_box_end_date.bind("<FocusIn>", self.remove_default_text_end_date)
+        self.edit_box_end_date.bind("<FocusOut>", self.restore_default_text_end_date)
+        self.edit_box_end_date.place(relx=0.01, rely=0.59, anchor="sw")
 
-        # Text tipo fi generazione: cartelle, immagini entrambi
-        self.text_generazione = tk.Text(parent, width=30, height=1, font=font, highlightthickness=0, background="#f0f0f0", bd=0)
-        self.text_generazione.insert(tk.END, "Vuoi generare file csv o immagini:")
-        self.text_generazione.place(relx=0.01, rely=0.75, anchor="sw")
+        # Text for generation type: folders, images, both
+        self.text_generation = tk.Text(parent, width=37, height=1, font=font, highlightthickness=0,
+                                       background="#f0f0f0", bd=0)
+        self.text_generation.insert(tk.END, "Do you want to generate CSV files or images?")
+        self.text_generation.place(relx=0.01, rely=0.75, anchor="sw")
 
-        # Radio button per il tipo di generazione
-        self.radio_var_generazione = tk.StringVar(value="vuoto")  # Imposta il valore iniziale su una stringa vuota
+        # Generation type radio buttons
+        self.radio_var_generation = tk.StringVar(value="empty")  # Set initial value to an empty string
 
-        # radio button: file
-        self.radio_button_cartelle = tk.Radiobutton(parent, text="File", variable=self.radio_var_generazione,
-                                                    value="file", font=font)
-        self.radio_button_cartelle.place(relx=0.01, rely=0.8, anchor="sw")
+        # radio button: files
+        self.radio_button_files = tk.Radiobutton(parent, text="Files", variable=self.radio_var_generation,
+                                                 value="files", font=font)
+        self.radio_button_files.place(relx=0.01, rely=0.8, anchor="sw")
 
-        # radio button: immagini
-        self.radio_button_immagini = tk.Radiobutton(parent, text="Immagini", variable=self.radio_var_generazione,
-                                                    value="Immagini", font=font)
-        self.radio_button_immagini.place(relx=0.07, rely=0.8, anchor="sw")
+        # radio button: images
+        self.radio_button_images = tk.Radiobutton(parent, text="Images", variable=self.radio_var_generation,
+                                                  value="images", font=font)
+        self.radio_button_images.place(relx=0.07, rely=0.8, anchor="sw")
 
-        # radio button: entrambi
-        self.radio_button_entrambi = tk.Radiobutton(parent, text="Entrambi", variable=self.radio_var_generazione,
-                                                    value="entrambi", font=font)
-        self.radio_button_entrambi.place(relx=0.15, rely=0.8, anchor="sw")
+        # radio button: both
+        self.radio_button_both = tk.Radiobutton(parent, text="Both", variable=self.radio_var_generation,
+                                                value="both", font=font)
+        self.radio_button_both.place(relx=0.15, rely=0.8, anchor="sw")
 
-    def remove_default_text_data_fine(self, event):
-        if self.edit_box_data_fine.get() == self.default_text_data_fine:
-            self.edit_box_data_fine.delete(0, tk.END)
-            self.edit_box_data_fine.config(foreground="black")  # Cambia il colore del testo a nero
+        # Text for generation method: GADF, GASF, both
+        self.text_generation = tk.Text(parent, width=37, height=1, font=font, highlightthickness=0,
+                                       background="#f0f0f0", bd=0)
+        self.text_generation.insert(tk.END, "Wich encoding method do you want to use?")
+        self.text_generation.place(relx=0.01, rely=0.85, anchor="sw")
 
-    def restore_default_text_data_fine(self, event):
-        if not self.edit_box_data_fine.get():
-            self.edit_box_data_fine.insert(0, self.default_text_data_fine)
-            self.edit_box_data_fine.config(foreground=self.hint_color)  # Cambia il colore del testo all'hint color
+        # Generation type radio buttons
+        self.radio_var_method = tk.StringVar(value="empty")  # Set initial value to an empty string
 
+        # radio button: Gadf
+        self.radio_button_Gadf = tk.Radiobutton(parent, text="GADF", variable=self.radio_var_method,
+                                                 value="GADF", font=font)
+        self.radio_button_Gadf.place(relx=0.01, rely=0.9, anchor="sw")
 
-    def remove_default_text_data_inizio(self, event):
-        if self.edit_box_data_inizio.get() == self.default_text_data_inizio:
-            self.edit_box_data_inizio.delete(0, tk.END)
-            self.edit_box_data_inizio.config(foreground="black")  # Cambia il colore del testo a nero
+        # radio button: Gasf
+        self.radio_button_Gasf = tk.Radiobutton(parent, text="GASF", variable=self.radio_var_method,
+                                                  value="GASF", font=font)
+        self.radio_button_Gasf.place(relx=0.07, rely=0.9, anchor="sw")
 
-    def restore_default_text_data_inizio(self, event):
-        if not self.edit_box_data_inizio.get():
-            self.edit_box_data_inizio.insert(0, self.default_text_data_inizio)
-            self.edit_box_data_inizio.config(foreground=self.hint_color)  # Cambia il colore del testo all'hint color
+        # radio button: both methods
+        self.radio_button_both_methods = tk.Radiobutton(parent, text="Both", variable=self.radio_var_method,
+                                                value="Both", font=font)
+        self.radio_button_both_methods.place(relx=0.15, rely=0.9, anchor="sw")
+
+        # Label button
+        self.button = tk.Button(parent, text="Create label", command=self.on_button_click_label, width=20, height=2, bd=2,
+                                highlightthickness=2, bg="#a9a9a9")
+        self.button.place(relx=0.08, rely=0.95, anchor="sw")
+
+        # Percentage training edit box
+        self.default_text_training = "Percentage training:"
+
+        self.edit_box_training = tk.Entry(parent, width=25, font=font)
+        self.edit_box_training.insert(0, self.default_text_training)
+        self.edit_box_training.config(foreground=self.hint_color)
+        self.edit_box_training.bind("<FocusIn>", self.remove_default_text_training)
+        self.edit_box_training.bind("<FocusOut>", self.restore_default_text_training)
+        self.edit_box_training.place(relx=0.01, rely=0.63, anchor="sw")
+
+        # Percentage testing edit box
+        self.default_text_testing = "Percentage testing:"
+
+        self.edit_box_testing = tk.Entry(parent, width=25, font=font)
+        self.edit_box_testing.insert(0, self.default_text_testing)
+        self.edit_box_testing.config(foreground=self.hint_color)
+        self.edit_box_testing.bind("<FocusIn>", self.remove_default_text_testing)
+        self.edit_box_testing.bind("<FocusOut>", self.restore_default_text_testing)
+        self.edit_box_testing.place(relx=0.01, rely=0.66, anchor="sw")
+
+        # Percentage validation edit box
+        self.default_text_validation = "Percentage validation:"
+
+        self.edit_box_validation = tk.Entry(parent, width=25, font=font)
+        self.edit_box_validation.insert(0, self.default_text_validation)
+        self.edit_box_validation.config(foreground=self.hint_color)
+        self.edit_box_validation.bind("<FocusIn>", self.remove_default_text_validation)
+        self.edit_box_validation.bind("<FocusOut>", self.restore_default_text_validation)
+        self.edit_box_validation.place(relx=0.01, rely=0.69, anchor="sw")
+
+        # Intervals edit box
+        self.default_text_intervals = "Intervals:"
+
+        self.edit_box_intervals = tk.Entry(parent, width=25, font=font)
+        self.edit_box_intervals.insert(0, self.default_text_intervals)
+        self.edit_box_intervals.config(foreground=self.hint_color)
+        self.edit_box_intervals.bind("<FocusIn>", self.remove_default_text_intervals)
+        self.edit_box_intervals.bind("<FocusOut>", self.restore_default_text_intervals)
+        self.edit_box_intervals.place(relx=0.01, rely=0.725, anchor="sw")
+
+    def remove_default_text_intervals(self, event):
+        if self.edit_box_intervals.get() == self.default_text_intervals:
+            self.edit_box_intervals.delete(0, tk.END)
+            self.edit_box_intervals.config(foreground="black")  # Change text color to black
+
+    def restore_default_text_intervals(self, event):
+        if not self.edit_box_intervals.get():
+            self.edit_box_intervals.insert(0, self.default_text_intervals)
+            self.edit_box_intervals.config(foreground=self.hint_color) # Change text color to the hint color
+
+    def remove_default_text_validation(self, event):
+        if self.edit_box_validation.get() == self.default_text_validation:
+            self.edit_box_validation.delete(0, tk.END)
+            self.edit_box_validation.config(foreground="black")  # Change text color to black
+
+    def restore_default_text_validation(self, event):
+        if not self.edit_box_validation.get():
+            self.edit_box_validation.insert(0, self.default_text_validation)
+            self.edit_box_validation.config(foreground=self.hint_color) # Change text color to the hint color
+
+    def remove_default_text_testing(self, event):
+        if self.edit_box_testing.get() == self.default_text_testing:
+            self.edit_box_testing.delete(0, tk.END)
+            self.edit_box_testing.config(foreground="black")  # Change text color to black
+
+    def restore_default_text_testing(self, event):
+        if not self.edit_box_testing.get():
+            self.edit_box_testing.insert(0, self.default_text_testing)
+            self.edit_box_testing.config(foreground=self.hint_color) # Change text color to the hint color
+
+    def remove_default_text_training(self, event):
+        if self.edit_box_training.get() == self.default_text_training:
+            self.edit_box_training.delete(0, tk.END)
+            self.edit_box_training.config(foreground="black")  # Change text color to black
+
+    def restore_default_text_training(self, event):
+        if not self.edit_box_training.get():
+            self.edit_box_training.insert(0, self.default_text_training)
+            self.edit_box_training.config(foreground=self.hint_color) # Change text color to the hint color
+
+    def remove_default_text_end_date(self, event):
+        if self.edit_box_end_date.get() == self.default_text_end_date:
+            self.edit_box_end_date.delete(0, tk.END)
+            self.edit_box_end_date.config(foreground="black")  # Change text color to black
+
+    def restore_default_text_end_date(self, event):
+        if not self.edit_box_end_date.get():
+            self.edit_box_end_date.insert(0, self.default_text_end_date)
+            self.edit_box_end_date.config(foreground=self.hint_color) # Change text color to the hint color
+
+    def remove_default_text_start_date(self, event):
+        if self.edit_box_start_date.get() == self.default_text_start_date:
+            self.edit_box_start_date.delete(0, tk.END)
+            self.edit_box_start_date.config(foreground="black")  # Change text color to black
+
+    def restore_default_text_start_date(self, event):
+        if not self.edit_box_start_date.get():
+            self.edit_box_start_date.insert(0, self.default_text_start_date)
+            self.edit_box_start_date.config(foreground=self.hint_color)  # Change text color to the hint color
 
     def drop_inside_list_box(self, event):
         file_paths = self._parse_drop_files(event.data)
@@ -223,10 +327,13 @@ class SearchPage(tk.Frame):
                     column_value_pairs[col] = lookup_value
             self.data_table.find_value(pairs=column_value_pairs)
 
-    def on_button_click(self):
-        # Azioni da eseguire quando il pulsante viene prem
-        print("Pulsante premuto")
-
+    def on_button_click_generete(self):
+        # Actions to be performed when the button is clicked
+        print("Button clicked")
+        #print(list(self.data_table.stored_dataframe.columns))
+    def on_button_click_label(self):
+        # Actions to be performed when the button is clicked
+        print("Button clicked")
 
 if __name__ == "__main__":
     root = Application()
