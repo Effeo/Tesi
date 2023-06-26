@@ -1,10 +1,16 @@
+import math
+import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import ttk
+import tkinter.messagebox
 
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
 import pandas as pd
+import os
+
+from datetime import datetime
 
 '''
     - select rows by date X
@@ -12,16 +18,10 @@ import pandas as pd
     - generation method X
     - create both folders and images (selecting) X
     - create Label column X
-    - trim column (remove column)
     - select rows with start and end date or intervals (from the two selected rows, how often images need to be generated) X
     - specify percentages for training, validation, and testing parts X
 '''
 
-
-'''
-block the resize
-
-'''
 class Application(TkinterDnD.Tk):
     def __init__(self):
         super().__init__()
@@ -38,7 +38,7 @@ class Application(TkinterDnD.Tk):
         self.geometry(f"{screen_width}x{screen_height}")
 
     def set_minimum_window_size(self):
-        self.wm_minsize(width=800, height=600)
+        self.wm_minsize(width=1900, height=900)
 
 
 class DataTable(ttk.Treeview):
@@ -96,7 +96,8 @@ class SearchPage(tk.Frame):
         self.path_map = {}
 
         # Generate button
-        self.button = tk.Button(parent, text="Generate", command=self.on_button_click_generete, width=20, height=2, bd=2,
+        self.button = tk.Button(parent, text="Generate", command=self.on_button_click_generete, width=20, height=2,
+                                bd=2,
                                 highlightthickness=2, bg="#a9a9a9")
         self.button.place(relx=0.17, rely=0.95, anchor="sw")
 
@@ -157,21 +158,22 @@ class SearchPage(tk.Frame):
 
         # radio button: Gadf
         self.radio_button_Gadf = tk.Radiobutton(parent, text="GADF", variable=self.radio_var_method,
-                                                 value="GADF", font=font)
+                                                value="GADF", font=font)
         self.radio_button_Gadf.place(relx=0.01, rely=0.9, anchor="sw")
 
         # radio button: Gasf
         self.radio_button_Gasf = tk.Radiobutton(parent, text="GASF", variable=self.radio_var_method,
-                                                  value="GASF", font=font)
+                                                value="GASF", font=font)
         self.radio_button_Gasf.place(relx=0.07, rely=0.9, anchor="sw")
 
         # radio button: both methods
         self.radio_button_both_methods = tk.Radiobutton(parent, text="Both", variable=self.radio_var_method,
-                                                value="Both", font=font)
+                                                        value="Both", font=font)
         self.radio_button_both_methods.place(relx=0.15, rely=0.9, anchor="sw")
 
         # Label button
-        self.button = tk.Button(parent, text="Create label", command=self.on_button_click_label, width=20, height=2, bd=2,
+        self.button = tk.Button(parent, text="Create label", command=self.on_button_click_label, width=20, height=2,
+                                bd=2,
                                 highlightthickness=2, bg="#a9a9a9")
         self.button.place(relx=0.08, rely=0.95, anchor="sw")
 
@@ -215,12 +217,6 @@ class SearchPage(tk.Frame):
         self.edit_box_intervals.bind("<FocusOut>", self.restore_default_text_intervals)
         self.edit_box_intervals.place(relx=0.01, rely=0.725, anchor="sw")
 
-        # Remove column button
-        self.label = tk.Label(parent, text="Columns to have:", width=20, height=1,
-                                bd=2,
-                                highlightthickness=2, font=font)
-        self.label.place(relx=0.15, rely=0.552, anchor="sw")
-
     def remove_default_text_intervals(self, event):
         if self.edit_box_intervals.get() == self.default_text_intervals:
             self.edit_box_intervals.delete(0, tk.END)
@@ -229,7 +225,7 @@ class SearchPage(tk.Frame):
     def restore_default_text_intervals(self, event):
         if not self.edit_box_intervals.get():
             self.edit_box_intervals.insert(0, self.default_text_intervals)
-            self.edit_box_intervals.config(foreground=self.hint_color) # Change text color to the hint color
+            self.edit_box_intervals.config(foreground=self.hint_color)  # Change text color to the hint color
 
     def remove_default_text_validation(self, event):
         if self.edit_box_validation.get() == self.default_text_validation:
@@ -239,7 +235,7 @@ class SearchPage(tk.Frame):
     def restore_default_text_validation(self, event):
         if not self.edit_box_validation.get():
             self.edit_box_validation.insert(0, self.default_text_validation)
-            self.edit_box_validation.config(foreground=self.hint_color) # Change text color to the hint color
+            self.edit_box_validation.config(foreground=self.hint_color)  # Change text color to the hint color
 
     def remove_default_text_testing(self, event):
         if self.edit_box_testing.get() == self.default_text_testing:
@@ -249,7 +245,7 @@ class SearchPage(tk.Frame):
     def restore_default_text_testing(self, event):
         if not self.edit_box_testing.get():
             self.edit_box_testing.insert(0, self.default_text_testing)
-            self.edit_box_testing.config(foreground=self.hint_color) # Change text color to the hint color
+            self.edit_box_testing.config(foreground=self.hint_color)  # Change text color to the hint color
 
     def remove_default_text_training(self, event):
         if self.edit_box_training.get() == self.default_text_training:
@@ -259,7 +255,7 @@ class SearchPage(tk.Frame):
     def restore_default_text_training(self, event):
         if not self.edit_box_training.get():
             self.edit_box_training.insert(0, self.default_text_training)
-            self.edit_box_training.config(foreground=self.hint_color) # Change text color to the hint color
+            self.edit_box_training.config(foreground=self.hint_color)  # Change text color to the hint color
 
     def remove_default_text_end_date(self, event):
         if self.edit_box_end_date.get() == self.default_text_end_date:
@@ -269,7 +265,7 @@ class SearchPage(tk.Frame):
     def restore_default_text_end_date(self, event):
         if not self.edit_box_end_date.get():
             self.edit_box_end_date.insert(0, self.default_text_end_date)
-            self.edit_box_end_date.config(foreground=self.hint_color) # Change text color to the hint color
+            self.edit_box_end_date.config(foreground=self.hint_color)  # Change text color to the hint color
 
     def remove_default_text_start_date(self, event):
         if self.edit_box_start_date.get() == self.default_text_start_date:
@@ -342,17 +338,150 @@ class SearchPage(tk.Frame):
     def on_button_click_generete(self):
         # Actions to be performed when the button is clicked
         print("Button clicked")
-        #print(list(self.data_table.stored_dataframe.columns))
+        tkinter.messagebox.showinfo("Error", "hello")
+
     def on_button_click_label(self):
         # Actions to be performed when the button is clicked
-        print("Button clicked")
+        startDate = ""
+        endDate = ""
 
-    def on_button_click_remove_column(self):
-        # Actions to be performed when the button is clicked
-        global my_list_of_entries
-        for _ in range(4):
-            my_list_of_entries.append(tk.Entry(self.parent))
-            my_list_of_entries[-1].pack()
+        if self.edit_box_start_date.get() != self.default_text_start_date:
+            try:
+                startDate = datetime.strptime(self.edit_box_start_date.get(), '%Y-%m-%d').date()
+            except ValueError as e:
+                tkinter.messagebox.showerror("Error", "Invalid value: leave it blank or enter a valid date.")
+                return
+
+        if self.edit_box_end_date.get() != self.default_text_end_date:
+            try:
+                endDate = datetime.strptime(self.edit_box_end_date.get(), '%Y-%m-%d').date()
+            except ValueError as e:
+                tkinter.messagebox.showerror("Error", "Invalid value: leave it blank or enter a valid date.")
+                return
+
+        if startDate and endDate and startDate >= endDate:
+            tk.messagebox.showerror("Error", "Invalid date range: start date must be earlier than end date.")
+            return
+
+        try:
+            selected_index = self.file_names_listbox.curselection()
+            if selected_index:
+                name = self.file_names_listbox.get(self.file_names_listbox.curselection())
+                name = name[0:name.index(".")] + "_label.csv"
+
+                self.addLabel1g_with_progress(self.data_table.stored_dataframe, name, startDate, endDate)
+            else:
+                tkinter.messagebox.showerror("Error", "No item selected")
+        except tk.TclError as e:
+            print(f"TclError: {e}")
+            tkinter.messagebox.showerror("Error", "An error occurred")
+
+    def getLabel(self, data, i, close):
+        list = [data.iloc[i + 1]]
+        closeNextDay = list[0].iloc[4]
+
+        if close == closeNextDay: return 2
+
+        if close > closeNextDay: return 1
+
+        if close < closeNextDay: return 0
+
+    def takeIndex(self, dates, dateFind):
+        i = 0
+        flag = True
+        for date in dates:
+            dtObj = datetime.strptime(date, '%Y-%m-%d').date()
+            if dateFind == dtObj:
+                flag = False
+                break
+            i += 1
+
+        if flag: i = math.nan
+
+        return i
+
+    def center_window(self, window, message):
+        progressbar = ttk.Progressbar(window, mode='indeterminate')
+        progressbar.pack(pady=10)
+        progressbar.start()
+
+        message_width = len(message) * 10  # Width proportional to the message length
+        message_height = 100  # Fixed height
+
+        tk.Message(window, text=message, padx=20, pady=20, width=message_width, aspect=400).pack()
+
+        window.update_idletasks()
+
+        screen_width = window.winfo_screenwidth()
+        screen_height = window.winfo_screenheight()
+
+        x = (screen_width // 2) - (message_width // 2)
+        y = (screen_height // 2) - (message_height // 2)
+
+        window.geometry(f"{message_width}x{message_height}+{x}+{y}")
+
+    def addLabel1g_with_progress(self, data: pd.DataFrame, name, startDate, endDate):
+        top = tk.Toplevel()
+        top.title('Progress')
+
+        message = "Creating the csv..."
+        self.center_window(top, message)
+        top.grab_set()
+        top.protocol("WM_DELETE_WINDOW", lambda: None)
+
+        def add_label1g():
+            csv1g = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
+            rows = []
+
+            startIndex = 0
+            endIndex = data.shape[0]
+
+            if startDate != "":
+                startIndex = self.takeIndex(data.loc[:, "Date"], startDate)
+
+            if endDate != "":
+                endIndex = self.takeIndex(data.loc[:, "Date"], endDate)
+
+            if math.isnan(startIndex) or math.isnan(endIndex):
+                top.destroy()
+                tkinter.messagebox.showerror("Error", "Invalid value: can't find one of the two dates")
+                return
+
+            for i in range(startIndex, endIndex + 1):
+                list = [data.iloc[i]]
+
+                if (i + 1 < data.shape[0]):
+                    row = {'Date': [list[0].iloc[0]], 'Open': [list[0].iloc[1]],
+                           'High': [list[0].iloc[2]], 'Low': [list[0].iloc[3]], 'Close': [list[0].iloc[4]],
+                           'Adj Close': [list[0].iloc[5]], 'Volume': [list[0].iloc[6]],
+                           'Label': [self.getLabel(data, i, list[0].iloc[4])]}
+
+                else:
+                    row = {'Date': [data.iloc[i].iloc[0]], 'Open': [data.iloc[i].iloc[1]],
+                           'High': [data.iloc[i].iloc[2]], 'Low': [data.iloc[i].iloc[3]], 'Close': [data.iloc[i].iloc[4]],
+                           'Adj Close': [data.iloc[i].iloc[5]], 'Volume': [data.iloc[i].iloc[6]],
+                           'Label': [None]}
+
+                rows.append(pd.DataFrame(row))
+
+            csv1g = pd.concat(rows, ignore_index=True)
+
+            # Get the path of the "result" folder on the desktop
+            desktop_path = os.path.join(os.path.expanduser("~"), "Desktop", "result")
+
+            # Create the "result" folder if it doesn't exist already
+            os.makedirs(desktop_path, exist_ok=True)
+
+            # Concatenate the path of the "result" folder with the file name
+            file_path = os.path.join(desktop_path, name)
+
+            csv1g.to_csv(file_path, index=False)
+
+            top.destroy()
+            tk.messagebox.showinfo("Success", "File CSV created.")
+
+        thread = threading.Thread(target=add_label1g)
+        thread.start()
 
 if __name__ == "__main__":
     root = Application()
