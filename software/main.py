@@ -1,18 +1,6 @@
 import tkinter as tk
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from SearchPage import SearchPage
-
-'''
-    - select rows by date X
-    - generate image button X
-    - generation method X
-    - create both folders and images (selecting) X
-    - create Label column X
-    - select rows with start and end date or intervals (from the two selected rows, how often images need to be generated) X
-    - specify percentages for training, validation, and testing parts X
-'''
-
-
 class Application(TkinterDnD.Tk):
     def __init__(self):
         super().__init__()

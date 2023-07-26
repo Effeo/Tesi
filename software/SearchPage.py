@@ -221,11 +221,63 @@ class SearchPage(tk.Frame):
             self.data_table.find_value(pairs=column_value_pairs)
 
     def on_button_click_generete(self):
-        # Actions to be performed when the button is clicked
-        print("Button clicked")
-        tkinter.messagebox.showinfo("Error", "hello")
+        print(self.radio_var_method.get())
+        print(self.radio_var_generation.get())
 
-    def on_button_click_label(self):
+        checkDate, startDate, endDate = self.checkDate()
+
+        if checkDate:
+            checkPercentage, training, testing, validation = self.checkPercentage()
+
+            if checkPercentage:
+                checkIntervals, intervals = self.checkIntervals()
+
+                if checkIntervals:
+                    checkRadioButtons, var_generation, var_method = self.checkRadioButtons()
+
+
+    def checkRadioButtons(self):
+        var_method = self.radio_var_method.get()
+        var_generation = self.radio_var_generation.get()
+
+        if var_method == "empty" or var_generation == "empty":
+            tkinter.messagebox.showerror("Error", "Missing parameter: choose what do you want to generete and the encoding method")
+            return False, "", ""
+
+        return True, var_generation, var_method
+
+    def checkIntervals(self):
+        intervals = self.edit_box_intervals.get()
+
+        if not intervals.isnumeric():
+            tkinter.messagebox.showerror("Error", "Invalid value: intervalls value is not valid")
+            return False, 0
+
+        intervals = int(intervals)
+
+        if intervals <= 0:
+            tkinter.messagebox.showerror("Error", "Invalid value: intervalls value is not valid")
+            return False, 0
+
+        return True, intervals
+
+    def checkPercentage(self):
+        training, validation, testing = self.edit_box_training.get(), self.edit_box_validation.get(), self.edit_box_testing.get()
+
+        if not testing.isnumeric() or not validation.isnumeric() or not testing.isnumeric():
+            tkinter.messagebox.showerror("Error", "Invalid value: some percentage value is incorrect")
+            return False, 0, 0, 0
+
+        training, validation, testing = int(training), int(validation), int(testing)
+
+        if training + validation + testing != 100:
+            tkinter.messagebox.showerror("Error", "Invalid value: the sum of percentage is not 100%")
+            return False, 0, 0, 0
+
+        return True, training, testing, validation
+
+
+    def checkDate(self):
         # Actions to be performed when the button is clicked
         startDate = ""
         endDate = ""
@@ -235,31 +287,37 @@ class SearchPage(tk.Frame):
                 startDate = datetime.strptime(self.edit_box_start_date.get(), '%Y-%m-%d').date()
             except ValueError as e:
                 tkinter.messagebox.showerror("Error", "Invalid value: leave it blank or enter a valid date.")
-                return
+                return False, "", ""
 
         if self.edit_box_end_date.get() != self.default_text_end_date:
             try:
                 endDate = datetime.strptime(self.edit_box_end_date.get(), '%Y-%m-%d').date()
             except ValueError as e:
                 tkinter.messagebox.showerror("Error", "Invalid value: leave it blank or enter a valid date.")
-                return
+                return False, "", ""
 
         if startDate and endDate and startDate >= endDate:
             tk.messagebox.showerror("Error", "Invalid date range: start date must be earlier than end date.")
-            return
+            return False, "", ""
 
-        try:
-            selected_index = self.file_names_listbox.curselection()
-            if selected_index:
-                name = self.file_names_listbox.get(self.file_names_listbox.curselection())
-                name = name[0:name.index(".")] + "_label.csv"
+        return True, startDate, endDate
 
-                self.addLabel1g_with_progress(self.data_table.stored_dataframe, name, startDate, endDate)
-            else:
-                tkinter.messagebox.showerror("Error", "No item selected")
-        except tk.TclError as e:
-            print(f"TclError: {e}")
-            tkinter.messagebox.showerror("Error", "An error occurred")
+    def on_button_click_label(self):
+        check, startDate, endDate = self.checkDate()
+
+        if check:
+            try:
+                selected_index = self.file_names_listbox.curselection()
+                if selected_index:
+                    name = self.file_names_listbox.get(self.file_names_listbox.curselection())
+                    name = name[0:name.index(".")] + "_label.csv"
+
+                    self.addLabel1g_with_progress(self.data_table.stored_dataframe, name, startDate, endDate)
+                else:
+                    tkinter.messagebox.showerror("Error", "No item selected")
+            except tk.TclError as e:
+                print(f"TclError: {e}")
+                tkinter.messagebox.showerror("Error", "An error occurred")
 
     def getLabel(self, data, i, close):
         list = [data.iloc[i + 1]]
