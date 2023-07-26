@@ -119,7 +119,7 @@ class SearchPage(tk.Frame):
 
         # radio button: both
         self.radio_button_both = tk.Radiobutton(parent, text="Both", variable=self.radio_var_generation,
-                                                value="both", font=font)
+                                                value="Both", font=font)
         self.radio_button_both.place(relx=0.15, rely=0.8, anchor="sw")
 
         # Text for generation method: GADF, GASF, both
@@ -227,7 +227,7 @@ class SearchPage(tk.Frame):
         checkDate, startDate, endDate = self.checkDate()
 
         if checkDate:
-            checkPercentage, training, testing, validation = self.checkPercentage()
+            checkPercentage, trainingPercentage, testingPercentage, validationPercentage = self.checkPercentage()
 
             if checkPercentage:
                 checkIntervals, intervals = self.checkIntervals()
@@ -235,6 +235,106 @@ class SearchPage(tk.Frame):
                 if checkIntervals:
                     checkRadioButtons, var_generation, var_method = self.checkRadioButtons()
 
+                    if checkRadioButtons:
+                        try:
+                            selected_index = self.file_names_listbox.curselection()
+                            if selected_index:
+                                name = self.file_names_listbox.get(self.file_names_listbox.curselection())
+                                name = name[0:name.index(".")] + "_Div_"
+                                self.createCsv_with_progress(self.data_table.stored_dataframe, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name)
+                            else:
+                                tkinter.messagebox.showerror("Error", "No item selected")
+                        except tk.TclError as e:
+                            print(f"TclError: {e}")
+                            tkinter.messagebox.showerror("Error", "An error occurred")
+
+    def createCsv_with_progress(self, data, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name):
+        top = tk.Toplevel()
+        top.title('Progress')
+
+        message = "Processing..."
+        self.center_window(top, message)
+        top.grab_set()
+        top.protocol("WM_DELETE_WINDOW", lambda: None)
+
+        def createCsv():
+            startIndex = self.takeIndex(data.loc[:, "Date"], startDate)
+            endIndex = self.takeIndex(data.loc[:, "Date"], endDate) + 1
+
+            if math.isnan(startIndex) or math.isnan(endIndex):
+                top.destroy()
+                tkinter.messagebox.showerror("Error", "Invalid value: can't find one of the two dates")
+                return
+
+            #Div 1d
+            csv1g = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
+            rows = []
+            for i in range(startIndex, endIndex):
+                list = [data.iloc[i]]
+                row = row = {'Date': [list[0].iloc[0]], 'Open': [list[0].iloc[1]],
+                           'High': [list[0].iloc[2]], 'Low': [list[0].iloc[3]], 'Close': [list[0].iloc[4]],
+                           'Adj Close': [list[0].iloc[5]], 'Volume': [list[0].iloc[6]],
+                           'Label': [list[0].iloc[7]]}
+                rows.append(pd.DataFrame(row))
+
+            csv1g = pd.concat(rows, ignore_index=True)
+
+            # Get the path of the "result" folder on the desktop
+            desktop_path = os.path.join(os.path.expanduser("~"), "Desktop", "result/Div")
+
+            # Create the "result" folder if it doesn't exist already
+            os.makedirs(desktop_path, exist_ok=True)
+
+            # Concatenate the path of the "result" folder with the file name
+            file_path = os.path.join(desktop_path, name + "1.csv")
+
+            csv1g.to_csv(file_path, index=False)
+
+            div = [2, 4, 5]
+            for j in range(0, 3):
+                csv = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
+                list = [data.iloc[startIndex]]
+                rows = []
+
+                for i in range(startIndex + 1, endIndex):
+                    list.append(data.iloc[i])
+                    if len(list) == div[j]:
+                        highest, lowest, sumVolume = self.getHLS(list)
+                        row = {'Date': [list[0].iloc[0] + "/" + list[len(list) - 1].iloc[0]], 'Open': [list[0].iloc[1]],
+                               'High': [highest], 'Low': [lowest], 'Close': [list[len(list) - 1].iloc[4]],
+                               'Adj Close': [list[len(list) - 1].iloc[5]], 'Volume': [sumVolume], 'Label' : [list[len(list) - 1].iloc[7]]}
+                        rows.append(pd.DataFrame(row))
+                        list.pop(0)
+
+                csv = pd.concat(rows, ignore_index=True)
+
+                # Concatenate the path of the "result" folder with the file name
+                file_path = os.path.join(desktop_path, name + str(div[j]) + ".csv")
+
+                csv.to_csv(file_path, index=False)
+
+            top.destroy()
+            tk.messagebox.showinfo("Success", "Vedere cosa mettere")
+
+        thread = threading.Thread(target=createCsv())
+        thread.start()
+
+    def getHLS(self, list):
+        highest = list[0].iloc[2]
+        lowest = list[0].iloc[3]
+        sumVolume = list[0].iloc[6]
+        i = 0
+        for item in list:
+            if i != 0:
+                if highest < item.iloc[2]:
+                    highest = item.iloc[2]
+
+                if lowest > item.iloc[3]:
+                    lowest = item.iloc[3]
+
+                sumVolume += item.iloc[6]
+            i += 1
+        return highest, lowest, sumVolume
 
     def checkRadioButtons(self):
         var_method = self.radio_var_method.get()
@@ -275,7 +375,6 @@ class SearchPage(tk.Frame):
             return False, 0, 0, 0
 
         return True, training, testing, validation
-
 
     def checkDate(self):
         # Actions to be performed when the button is clicked
