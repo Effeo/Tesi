@@ -258,8 +258,19 @@ class SearchPage(tk.Frame):
         top.protocol("WM_DELETE_WINDOW", lambda: None)
 
         def createCsv():
-            startIndex = self.takeIndex(data.loc[:, "Date"], startDate)
-            endIndex = self.takeIndex(data.loc[:, "Date"], endDate) + 1
+            if startDate == "":
+                startIndex = 0
+                startDate2 = data.iloc[0, 0]
+            else:
+                startIndex = self.takeIndex(data.loc[:, "Date"], startDate)
+                startDate2 = startDate
+
+            if endDate == "":
+                endIndex = data.shape[0]
+                endDate2 = data.iloc[-1, 0]
+            else:
+                endIndex = self.takeIndex(data.loc[:, "Date"], endDate) + 1
+                endDate2 = endDate
 
             if math.isnan(startIndex) or math.isnan(endIndex):
                 top.destroy()
@@ -313,8 +324,13 @@ class SearchPage(tk.Frame):
 
                 csv.to_csv(file_path, index=False)
 
+            percentage6month = (1 / ((int(datetime.strptime(endDate2, '%Y-%m-%d').date().strftime('%Y')) - int(datetime.strptime(startDate2, '%Y-%m-%d').date().strftime('%Y'))) * 2)) * 100
+            nWalks = math.ceil((100 - (trainingPercentage + validationPercentage + testingPercentage)) / percentage6month)
+
+
+
             top.destroy()
-            tk.messagebox.showinfo("Success", "Vedere cosa mettere")
+            tk.messagebox.showinfo("Success", "Creation completed")
 
         thread = threading.Thread(target=createCsv())
         thread.start()
@@ -370,7 +386,7 @@ class SearchPage(tk.Frame):
 
         training, validation, testing = int(training), int(validation), int(testing)
 
-        if training + validation + testing != 100:
+        if training + validation + testing > 100:
             tkinter.messagebox.showerror("Error", "Invalid value: the sum of percentage is not 100%")
             return False, 0, 0, 0
 
