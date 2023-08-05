@@ -14,6 +14,8 @@ from tkinterdnd2 import DND_FILES
 import pandas as pd
 from DataTable import DataTable
 
+from dateutil.relativedelta import relativedelta
+
 
 class SearchPage(tk.Frame):
     def __init__(self, parent):
@@ -76,7 +78,7 @@ class SearchPage(tk.Frame):
         self.edit_box_testing.config(foreground=self.hint_color)
         self.edit_box_testing.bind("<FocusIn>", lambda event: self.remove_default_text(event, self.default_text_testing, self.edit_box_testing))
         self.edit_box_testing.bind("<FocusOut>", lambda event: self.restore_default_text(event, self.default_text_testing, self.edit_box_testing))
-        self.edit_box_testing.place(relx=0.01, rely=0.66, anchor="sw")
+        self.edit_box_testing.place(relx=0.01, rely=0.69, anchor="sw")
 
         # Percentage validation edit box
         self.default_text_validation = "Percentage validation:"
@@ -86,7 +88,7 @@ class SearchPage(tk.Frame):
         self.edit_box_validation.config(foreground=self.hint_color)
         self.edit_box_validation.bind("<FocusIn>", lambda event: self.remove_default_text(event, self.default_text_validation, self.edit_box_validation))
         self.edit_box_validation.bind("<FocusOut>", lambda event: self.restore_default_text(event, self.default_text_validation, self.edit_box_validation))
-        self.edit_box_validation.place(relx=0.01, rely=0.69, anchor="sw")
+        self.edit_box_validation.place(relx=0.01, rely=0.66, anchor="sw")
 
         # Intervals edit box
         self.default_text_intervals = "Intervals:"
@@ -240,7 +242,7 @@ class SearchPage(tk.Frame):
                             selected_index = self.file_names_listbox.curselection()
                             if selected_index:
                                 name = self.file_names_listbox.get(self.file_names_listbox.curselection())
-                                name = name[0:name.index(".")] + "_Div_"
+                                name = name[0:name.index(".")]
                                 self.createCsv_with_progress(self.data_table.stored_dataframe, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name)
                             else:
                                 tkinter.messagebox.showerror("Error", "No item selected")
@@ -291,13 +293,13 @@ class SearchPage(tk.Frame):
             csv1g = pd.concat(rows, ignore_index=True)
 
             # Get the path of the "result" folder on the desktop
-            desktop_path = os.path.join(os.path.expanduser("~"), "Desktop", "result/Div")
+            desktop_path_div = os.path.join(os.path.expanduser("~"), "Desktop", "result/" + name + "/Div")
 
             # Create the "result" folder if it doesn't exist already
-            os.makedirs(desktop_path, exist_ok=True)
+            os.makedirs(desktop_path_div, exist_ok=True)
 
             # Concatenate the path of the "result" folder with the file name
-            file_path = os.path.join(desktop_path, name + "1.csv")
+            file_path = os.path.join(desktop_path_div, name + "_Div_1.csv")
 
             csv1g.to_csv(file_path, index=False)
 
@@ -320,13 +322,75 @@ class SearchPage(tk.Frame):
                 csv = pd.concat(rows, ignore_index=True)
 
                 # Concatenate the path of the "result" folder with the file name
-                file_path = os.path.join(desktop_path, name + str(div[j]) + ".csv")
+                file_path = os.path.join(desktop_path_div, name + "_Div_" + str(div[j]) + ".csv")
 
                 csv.to_csv(file_path, index=False)
 
             percentage6month = (1 / ((int(datetime.strptime(endDate2, '%Y-%m-%d').date().strftime('%Y')) - int(datetime.strptime(startDate2, '%Y-%m-%d').date().strftime('%Y'))) * 2)) * 100
             nWalks = math.ceil((100 - (trainingPercentage + validationPercentage + testingPercentage)) / percentage6month)
 
+            div = ["1", "2", "4", "5"]
+            columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label']
+            desktop_path_walks = os.path.join(os.path.expanduser("~"), "Desktop", "result/" + name + "/Walks")
+
+            # Create the "result" folder if it doesn't exist already
+            os.makedirs(desktop_path_walks, exist_ok=True)
+
+            for el in div:
+                file_path_div = os.path.join(desktop_path_div, name + "_Div_" + el + ".csv")
+                data_div = pd.read_csv(file_path_div)
+
+                path_walk_training = os.path.join(os.path.expanduser("~"), "Desktop", "result/" + name +  "/Walks/WalkTraining/WalkTraining_day" +  el)
+                os.makedirs(path_walk_training, exist_ok=True)
+
+                path_walk_validation = os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkValidation/WalkValidation_day" + el)
+                os.makedirs(path_walk_validation, exist_ok=True)
+
+                path_walk_testing = os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkTesting/WalkTesting_day" + el)
+                os.makedirs(path_walk_testing, exist_ok=True)
+
+                startIndex = 0
+                for i in range(0, nWalks):
+                    if i != 0:
+                        startIndex = self.takeIndex2(startIndex, data_div, el)
+
+                    endIndex = int((data_div.shape[0] - startIndex) * (trainingPercentage / 100))
+
+                    file_path_training = os.path.join(path_walk_training, "WalkTraining_day" + el + "_" + str(i + 1) + ".csv")
+                    file_path_validation = os.path.join(path_walk_validation, "WalkValidation_day" + el + "_" + str(i + 1) + ".csv")
+                    file_path_testing = os.path.join(path_walk_testing, "WalkTesting_day" + el + "_" + str(i + 1) + ".csv")
+
+                    csv = pd.DataFrame(columns=columns)
+                    rows_to_append = [data_div.iloc[j] for j in range(startIndex, endIndex)]
+                    concatenated_df = pd.DataFrame(rows_to_append, columns=columns)
+                    csv = pd.concat([csv, concatenated_df], ignore_index=True)
+                    csv.to_csv(file_path_training, index=False)
+
+                    first_start_index = startIndex
+
+                    startIndex = endIndex
+                    endIndex = startIndex + int(data_div.shape[0] * (validationPercentage / 100))
+
+                    csv = pd.DataFrame(columns=columns)
+                    rows_to_append = [data_div.iloc[j] for j in range(startIndex, endIndex)]
+                    concatenated_df = pd.DataFrame(rows_to_append, columns=columns)
+                    csv = pd.concat([csv, concatenated_df], ignore_index=True)
+                    csv.to_csv(file_path_validation, index=False)
+
+                    startIndex = endIndex
+                    endIndex = startIndex + int(data_div.shape[0] * (validationPercentage / 100))
+
+                    csv = pd.DataFrame(columns=columns)
+                    rows_to_append = [data_div.iloc[j] for j in range(startIndex, endIndex)]
+                    concatenated_df = pd.DataFrame(rows_to_append, columns=columns)
+                    csv = pd.concat([csv, concatenated_df], ignore_index=True)
+                    csv.to_csv(file_path_testing, index=False)
+
+                    startIndex = first_start_index
+
+            
 
 
             top.destroy()
@@ -334,6 +398,25 @@ class SearchPage(tk.Frame):
 
         thread = threading.Thread(target=createCsv())
         thread.start()
+
+    def takeIndex2(self, startIndex, data_div, el):
+        date = data_div.iloc[startIndex, 0]
+        if el != "1":
+            date = date[0:date.index("/")]
+
+        new_date = datetime.strptime(date, '%Y-%m-%d').date() + relativedelta(months=6)
+
+        for i in range(startIndex, data_div.shape[0]):
+            date = data_div.iloc[i, 0]
+
+            if el != "1":
+                date = date[0:date.index("/")]
+
+            date = datetime.strptime(date, '%Y-%m-%d').date()
+            if date >= new_date:
+                return i
+
+        return i
 
     def getHLS(self, list):
         highest = list[0].iloc[2]
@@ -377,17 +460,24 @@ class SearchPage(tk.Frame):
 
         return True, intervals
 
+    def isfloat(self, num):
+        try:
+            float(num)
+            return True
+        except ValueError:
+            return False
+
     def checkPercentage(self):
         training, validation, testing = self.edit_box_training.get(), self.edit_box_validation.get(), self.edit_box_testing.get()
 
-        if not testing.isnumeric() or not validation.isnumeric() or not testing.isnumeric():
+        if not self.isfloat(training) or not self.isfloat(validation) or not self.isfloat(testing):
             tkinter.messagebox.showerror("Error", "Invalid value: some percentage value is incorrect")
             return False, 0, 0, 0
 
-        training, validation, testing = int(training), int(validation), int(testing)
+        training, validation, testing = float(training), float(validation), float(testing)
 
         if training + validation + testing > 100:
-            tkinter.messagebox.showerror("Error", "Invalid value: the sum of percentage is not 100%")
+            tkinter.messagebox.showerror("Error", "Invalid value: the sum of percentage is grater than 100%")
             return False, 0, 0, 0
 
         return True, training, testing, validation
