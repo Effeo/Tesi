@@ -390,14 +390,111 @@ class SearchPage(tk.Frame):
 
                     startIndex = first_start_index
 
-            
 
+            desktop_path_walks_interval_training = os.path.join(os.path.expanduser("~"), "Desktop", "result/" + name + "/Walks_interval/WalkTraining_interval")
+            os.makedirs(desktop_path_walks_interval_training, exist_ok=True)
+
+            for i in range(0, nWalks):
+                data5 = pd.read_csv(os.path.join(path_walk_training, "WalkTraining_day5" + "_" + str(i + 1) + ".csv"))
+                data1 = pd.read_csv(os.path.join(path_walk_training, "WalkTraining_day1" + "_" + str(i + 1) + ".csv"))
+                data2 = pd.read_csv(os.path.join(path_walk_training, "WalkTraining_day2" + "_" + str(i + 1) + ".csv"))
+                data4 = pd.read_csv(os.path.join(path_walk_training, "WalkTraining_day4" + "_" + str(i + 1) + ".csv"))
+
+                os.makedirs(os.path.join(os.path.expanduser("~"), "Desktop",
+                             "result/" + name + "/Walks_interval/WalkTraining_interval/WalkTraining_interval_" + str(i + 1)), exist_ok=True)
+
+                self.createWalks(data5, data1, data2, data4, "result/" + name + "/Walks_interval/WalkTraining_interval/WalkTraining_interval_" + str(i + 1) + "/")
+
+            desktop_path_walks_interval_validation = os.path.join(os.path.expanduser("~"), "Desktop",
+                                                                "result/" + name + "/Walks_interval/WalkValidation_interval")
+            os.makedirs(desktop_path_walks_interval_validation, exist_ok=True)
+            for i in range(0, nWalks):
+                data5 = pd.read_csv("WalkValidation/WalkValidation_day5/WalkValidation" + str(i) + "_day5.csv")
+                data1 = pd.read_csv("WalkValidation/WalkValidation_day1/WalkValidation" + str(i) + "_day1.csv")
+                data2 = pd.read_csv("WalkValidation/WalkValidation_day2/WalkValidation" + str(i) + "_day2.csv")
+                data4 = pd.read_csv("WalkValidation/WalkValidation_day4/WalkValidation" + str(i) + "_day4.csv")
+
+                os.mkdir("WalkValidation_div20/WalkValidation_div20_" + str(i))
+                self.createWalks(data5, data1, data2, data4, "WalkValidation_div20/WalkValidation_div20_" + str(i) + "/")
+
+            desktop_path_walks_interval_testing = os.path.join(os.path.expanduser("~"), "Desktop",
+                                                                "result/" + name + "/Walks_interval/WalkTesting_interval")
+            os.makedirs(desktop_path_walks_interval_testing, exist_ok=True)
+            for i in range(0, nWalks):
+                data5 = pd.read_csv("WalkTesting/WalkTesting_day5/WalkTesting" + str(i) + "_day5.csv")
+                data1 = pd.read_csv("WalkTesting/WalkTesting_day1/WalkTesting" + str(i) + "_day1.csv")
+                data2 = pd.read_csv("WalkTesting/WalkTesting_day2/WalkTesting" + str(i) + "_day2.csv")
+                data4 = pd.read_csv("WalkTesting/WalkTesting_day4/WalkTesting" + str(i) + "_day4.csv")
+
+                os.mkdir("WalkTesting_div20/WalkTesting_div20_" + str(i))
+                self.createWalks(data5, data1, data2, data4, "WalkTesting_div20/WalkTesting_div20_" + str(i) + "/")
 
             top.destroy()
             tk.messagebox.showinfo("Success", "Creation completed")
 
         thread = threading.Thread(target=createCsv())
         thread.start()
+
+    def createWalks(self, data5, data1, data2, data4, name):
+        csv5 = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
+        csv1 = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
+        csv2 = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
+        csv4 = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
+
+        i_1 = 4
+        i_2 = 3
+        i_4 = 1
+        count = 0
+
+        for i in range(0, len(data5)):
+            if count < 20:
+                csv5 = csv5.append(data5.iloc[i], ignore_index=True)
+                csv4 = csv4.append(data4.iloc[i_4], ignore_index=True)
+                csv2 = csv2.append(data2.iloc[i_2], ignore_index=True)
+                csv1 = csv1.append(data1.iloc[i_1], ignore_index=True)
+
+                count += 1
+                i_1 += 1
+                i_2 += 1
+                i_4 += 1
+
+                if count == 20:
+                    lastData = csv1.iloc[-1, 0]
+                    label = csv1.iloc[-1, 7]
+                    nameDir = name + str(lastData) + "_" + str(label)
+
+                    os.mkdir(nameDir)
+                    csv5.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_5.csv", index=False)
+                    csv1.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_1.csv", index=False)
+                    csv2.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_2.csv", index=False)
+                    csv4.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_4.csv", index=False)
+
+            if count > 20:
+                csv5 = csv5.append(data5.iloc[i], ignore_index=True)
+                csv4 = csv4.append(data4.iloc[i_4], ignore_index=True)
+                csv2 = csv2.append(data2.iloc[i_2], ignore_index=True)
+                csv1 = csv1.append(data1.iloc[i_1], ignore_index=True)
+
+                i_1 += 1
+                i_2 += 1
+                i_4 += 1
+
+                csv5 = csv5.drop(csv5.index[0])
+                csv4 = csv4.drop(csv4.index[0])
+                csv2 = csv2.drop(csv2.index[0])
+                csv1 = csv1.drop(csv1.index[0])
+
+                lastData = csv1.iloc[-1, 0]
+                label = csv1.iloc[-1, 7]
+                nameDir = name + str(lastData) + "_" + str(label)
+
+                os.mkdir(nameDir)
+                csv5.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_5.csv", index=False)
+                csv1.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_1.csv", index=False)
+                csv2.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_2.csv", index=False)
+                csv4.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_4.csv", index=False)
+
+            if count == 20: count += 1
 
     def takeIndex2(self, startIndex, data_div, el):
         date = data_div.iloc[startIndex, 0]
