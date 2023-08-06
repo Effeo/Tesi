@@ -70,16 +70,6 @@ class SearchPage(tk.Frame):
         self.edit_box_training.bind("<FocusOut>", lambda event: self.restore_default_text(event, self.default_text_training, self.edit_box_training))
         self.edit_box_training.place(relx=0.01, rely=0.63, anchor="sw")
 
-        # Percentage testing edit box
-        self.default_text_testing = "Percentage testing:"
-
-        self.edit_box_testing = tk.Entry(parent, width=25, font=font)
-        self.edit_box_testing.insert(0, self.default_text_testing)
-        self.edit_box_testing.config(foreground=self.hint_color)
-        self.edit_box_testing.bind("<FocusIn>", lambda event: self.remove_default_text(event, self.default_text_testing, self.edit_box_testing))
-        self.edit_box_testing.bind("<FocusOut>", lambda event: self.restore_default_text(event, self.default_text_testing, self.edit_box_testing))
-        self.edit_box_testing.place(relx=0.01, rely=0.69, anchor="sw")
-
         # Percentage validation edit box
         self.default_text_validation = "Percentage validation:"
 
@@ -89,6 +79,19 @@ class SearchPage(tk.Frame):
         self.edit_box_validation.bind("<FocusIn>", lambda event: self.remove_default_text(event, self.default_text_validation, self.edit_box_validation))
         self.edit_box_validation.bind("<FocusOut>", lambda event: self.restore_default_text(event, self.default_text_validation, self.edit_box_validation))
         self.edit_box_validation.place(relx=0.01, rely=0.66, anchor="sw")
+
+        # Percentage testing edit box
+        self.default_text_testing = "Percentage testing:"
+
+        self.edit_box_testing = tk.Entry(parent, width=25, font=font)
+        self.edit_box_testing.insert(0, self.default_text_testing)
+        self.edit_box_testing.config(foreground=self.hint_color)
+        self.edit_box_testing.bind("<FocusIn>", lambda event: self.remove_default_text(event, self.default_text_testing,
+                                                                                       self.edit_box_testing))
+        self.edit_box_testing.bind("<FocusOut>",
+                                   lambda event: self.restore_default_text(event, self.default_text_testing,
+                                                                           self.edit_box_testing))
+        self.edit_box_testing.place(relx=0.01, rely=0.69, anchor="sw")
 
         # Intervals edit box
         self.default_text_intervals = "Intervals:"
@@ -243,14 +246,14 @@ class SearchPage(tk.Frame):
                             if selected_index:
                                 name = self.file_names_listbox.get(self.file_names_listbox.curselection())
                                 name = name[0:name.index(".")]
-                                self.createCsv_with_progress(self.data_table.stored_dataframe, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name)
+                                self.createCsv_with_progress(self.data_table.stored_dataframe, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name, intervals)
                             else:
                                 tkinter.messagebox.showerror("Error", "No item selected")
                         except tk.TclError as e:
                             print(f"TclError: {e}")
                             tkinter.messagebox.showerror("Error", "An error occurred")
 
-    def createCsv_with_progress(self, data, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name):
+    def createCsv_with_progress(self, data, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name, intervals):
         top = tk.Toplevel()
         top.title('Progress')
 
@@ -307,23 +310,23 @@ class SearchPage(tk.Frame):
             for j in range(0, 3):
                 csv = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
                 list = [data.iloc[startIndex]]
-                rows = []
+                #rows = []
 
                 for i in range(startIndex + 1, endIndex):
+                    print(i)
                     list.append(data.iloc[i])
                     if len(list) == div[j]:
                         highest, lowest, sumVolume = self.getHLS(list)
-                        row = {'Date': [list[0].iloc[0] + "/" + list[len(list) - 1].iloc[0]], 'Open': [list[0].iloc[1]],
+                        row = pd.DataFrame({'Date': [list[0].iloc[0] + "/" + list[len(list) - 1].iloc[0]], 'Open': [list[0].iloc[1]],
                                'High': [highest], 'Low': [lowest], 'Close': [list[len(list) - 1].iloc[4]],
-                               'Adj Close': [list[len(list) - 1].iloc[5]], 'Volume': [sumVolume], 'Label' : [list[len(list) - 1].iloc[7]]}
-                        rows.append(pd.DataFrame(row))
-                        list.pop(0)
+                               'Adj Close': [list[len(list) - 1].iloc[5]], 'Volume': [sumVolume], 'Label' : [list[len(list) - 1].iloc[7]]}, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
 
-                csv = pd.concat(rows, ignore_index=True)
+                        #rows.append(pd.DataFrame(row))
+                        csv = pd.concat([csv, row], ignore_index=True)
+                        list.pop(0)
 
                 # Concatenate the path of the "result" folder with the file name
                 file_path = os.path.join(desktop_path_div, name + "_Div_" + str(div[j]) + ".csv")
-
                 csv.to_csv(file_path, index=False)
 
             percentage6month = (1 / ((int(datetime.strptime(endDate2, '%Y-%m-%d').date().strftime('%Y')) - int(datetime.strptime(startDate2, '%Y-%m-%d').date().strftime('%Y'))) * 2)) * 100
@@ -340,7 +343,7 @@ class SearchPage(tk.Frame):
                 file_path_div = os.path.join(desktop_path_div, name + "_Div_" + el + ".csv")
                 data_div = pd.read_csv(file_path_div)
 
-                path_walk_training = os.path.join(os.path.expanduser("~"), "Desktop", "result/" + name +  "/Walks/WalkTraining/WalkTraining_day" +  el)
+                path_walk_training = os.path.join(os.path.expanduser("~"), "Desktop", "result/" + name + "/Walks/WalkTraining/WalkTraining_day" + el)
                 os.makedirs(path_walk_training, exist_ok=True)
 
                 path_walk_validation = os.path.join(os.path.expanduser("~"), "Desktop",
@@ -352,82 +355,97 @@ class SearchPage(tk.Frame):
                 os.makedirs(path_walk_testing, exist_ok=True)
 
                 startIndex = 0
+                endIndexTraining = int(data_div.shape[0] * (trainingPercentage / 100))
+                endIndexValidation = int(data_div.shape[0] * (validationPercentage / 100))
+                endIndexTesting =  int(data_div.shape[0] * (testingPercentage / 100))
+
                 for i in range(0, nWalks):
                     if i != 0:
                         startIndex = self.takeIndex2(startIndex, data_div, el)
-
-                    endIndex = int((data_div.shape[0] - startIndex) * (trainingPercentage / 100))
 
                     file_path_training = os.path.join(path_walk_training, "WalkTraining_day" + el + "_" + str(i + 1) + ".csv")
                     file_path_validation = os.path.join(path_walk_validation, "WalkValidation_day" + el + "_" + str(i + 1) + ".csv")
                     file_path_testing = os.path.join(path_walk_testing, "WalkTesting_day" + el + "_" + str(i + 1) + ".csv")
 
                     csv = pd.DataFrame(columns=columns)
-                    rows_to_append = [data_div.iloc[j] for j in range(startIndex, endIndex)]
+                    rows_to_append = [data_div.iloc[j + startIndex] for j in range(0, endIndexTraining)]
                     concatenated_df = pd.DataFrame(rows_to_append, columns=columns)
                     csv = pd.concat([csv, concatenated_df], ignore_index=True)
                     csv.to_csv(file_path_training, index=False)
 
-                    first_start_index = startIndex
-
-                    startIndex = endIndex
-                    endIndex = startIndex + int(data_div.shape[0] * (validationPercentage / 100))
-
                     csv = pd.DataFrame(columns=columns)
-                    rows_to_append = [data_div.iloc[j] for j in range(startIndex, endIndex)]
+                    rows_to_append = [data_div.iloc[j + (endIndexTraining + startIndex)] for j in range(0, endIndexValidation)]
                     concatenated_df = pd.DataFrame(rows_to_append, columns=columns)
                     csv = pd.concat([csv, concatenated_df], ignore_index=True)
                     csv.to_csv(file_path_validation, index=False)
 
-                    startIndex = endIndex
-                    endIndex = startIndex + int(data_div.shape[0] * (validationPercentage / 100))
-
                     csv = pd.DataFrame(columns=columns)
-                    rows_to_append = [data_div.iloc[j] for j in range(startIndex, endIndex)]
+                    rows_to_append = [data_div.iloc[j + (endIndexTraining + startIndex + endIndexValidation - 1)] for j in range(0, endIndexTesting)]
                     concatenated_df = pd.DataFrame(rows_to_append, columns=columns)
                     csv = pd.concat([csv, concatenated_df], ignore_index=True)
                     csv.to_csv(file_path_testing, index=False)
-
-                    startIndex = first_start_index
-
 
             desktop_path_walks_interval_training = os.path.join(os.path.expanduser("~"), "Desktop", "result/" + name + "/Walks_interval/WalkTraining_interval")
             os.makedirs(desktop_path_walks_interval_training, exist_ok=True)
 
             for i in range(0, nWalks):
-                data5 = pd.read_csv(os.path.join(path_walk_training, "WalkTraining_day5" + "_" + str(i + 1) + ".csv"))
-                data1 = pd.read_csv(os.path.join(path_walk_training, "WalkTraining_day1" + "_" + str(i + 1) + ".csv"))
-                data2 = pd.read_csv(os.path.join(path_walk_training, "WalkTraining_day2" + "_" + str(i + 1) + ".csv"))
-                data4 = pd.read_csv(os.path.join(path_walk_training, "WalkTraining_day4" + "_" + str(i + 1) + ".csv"))
+                print("in training")
+                data5 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkTraining/WalkTraining_day5/WalkTraining_day5_" + str(i + 1) + ".csv"))
 
-                os.makedirs(os.path.join(os.path.expanduser("~"), "Desktop",
-                             "result/" + name + "/Walks_interval/WalkTraining_interval/WalkTraining_interval_" + str(i + 1)), exist_ok=True)
+                data1 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkTraining/WalkTraining_day1/WalkTraining_day1_" + str(i + 1) + ".csv"))
+                data2 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkTraining/WalkTraining_day2/WalkTraining_day2_" + str(i + 1) + ".csv"))
+                data4 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkTraining/WalkTraining_day4/WalkTraining_day4_" + str(i + 1) + ".csv"))
 
-                self.createWalks(data5, data1, data2, data4, "result/" + name + "/Walks_interval/WalkTraining_interval/WalkTraining_interval_" + str(i + 1) + "/")
+                path_training_interval = os.path.join(os.path.expanduser("~"), "Desktop",
+                             "result/" + name + "/Walks_interval/WalkTraining_interval/WalkTraining_interval_" + str(i + 1))
+                os.makedirs(path_training_interval, exist_ok=True)
+
+                self.createWalks(data5, data1, data2, data4, path_training_interval, intervals)
 
             desktop_path_walks_interval_validation = os.path.join(os.path.expanduser("~"), "Desktop",
                                                                 "result/" + name + "/Walks_interval/WalkValidation_interval")
             os.makedirs(desktop_path_walks_interval_validation, exist_ok=True)
-            for i in range(0, nWalks):
-                data5 = pd.read_csv("WalkValidation/WalkValidation_day5/WalkValidation" + str(i) + "_day5.csv")
-                data1 = pd.read_csv("WalkValidation/WalkValidation_day1/WalkValidation" + str(i) + "_day1.csv")
-                data2 = pd.read_csv("WalkValidation/WalkValidation_day2/WalkValidation" + str(i) + "_day2.csv")
-                data4 = pd.read_csv("WalkValidation/WalkValidation_day4/WalkValidation" + str(i) + "_day4.csv")
 
-                os.mkdir("WalkValidation_div20/WalkValidation_div20_" + str(i))
-                self.createWalks(data5, data1, data2, data4, "WalkValidation_div20/WalkValidation_div20_" + str(i) + "/")
+            for i in range(0, nWalks):
+                print("in validation")
+                data5 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkValidation/WalkValidation_day5/WalkValidation_day5_" + str(i + 1) + ".csv"))
+                data1 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkValidation/WalkValidation_day1/WalkValidation_day1_" + str(i + 1) + ".csv"))
+                data2 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkValidation/WalkValidation_day2/WalkValidation_day2_" + str(i + 1) + ".csv"))
+                data4 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkValidation/WalkValidation_day4/WalkValidation_day4_" + str(i + 1) + ".csv"))
+
+                path_validation_interval = os.path.join(os.path.expanduser("~"), "Desktop",
+                                                      "result/" + name + "/Walks_interval/WalkValidation_interval/WalkValidation_interval_" + str(
+                                                          i + 1))
+                os.makedirs(path_validation_interval, exist_ok=True)
+                self.createWalks(data5, data1, data2, data4, path_validation_interval, intervals)
 
             desktop_path_walks_interval_testing = os.path.join(os.path.expanduser("~"), "Desktop",
                                                                 "result/" + name + "/Walks_interval/WalkTesting_interval")
             os.makedirs(desktop_path_walks_interval_testing, exist_ok=True)
             for i in range(0, nWalks):
-                data5 = pd.read_csv("WalkTesting/WalkTesting_day5/WalkTesting" + str(i) + "_day5.csv")
-                data1 = pd.read_csv("WalkTesting/WalkTesting_day1/WalkTesting" + str(i) + "_day1.csv")
-                data2 = pd.read_csv("WalkTesting/WalkTesting_day2/WalkTesting" + str(i) + "_day2.csv")
-                data4 = pd.read_csv("WalkTesting/WalkTesting_day4/WalkTesting" + str(i) + "_day4.csv")
+                print("in testing")
+                data5 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkTesting/WalkTesting_day5/WalkTesting_day5_" + str(i + 1) + ".csv"))
+                data1 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkTesting/WalkTesting_day1/WalkTesting_day1_" + str(i + 1) + ".csv"))
+                data2 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkTesting/WalkTesting_day2/WalkTesting_day2_" + str(i + 1) + ".csv"))
+                data4 = pd.read_csv(os.path.join(os.path.expanduser("~"), "Desktop",
+                                                  "result/" + name + "/Walks/WalkTesting/WalkTesting_day4/WalkTesting_day4_" + str(i + 1) + ".csv"))
 
-                os.mkdir("WalkTesting_div20/WalkTesting_div20_" + str(i))
-                self.createWalks(data5, data1, data2, data4, "WalkTesting_div20/WalkTesting_div20_" + str(i) + "/")
+                path_testing_interval = os.path.join(os.path.expanduser("~"), "Desktop",
+                                                        "result/" + name + "/Walks_interval/WalkTesting_interval/Walktesting_interval_" + str(
+                                                            i + 1))
+                os.makedirs(path_testing_interval, exist_ok=True)
+                self.createWalks(data5, data1, data2, data4, path_testing_interval, intervals)
 
             top.destroy()
             tk.messagebox.showinfo("Success", "Creation completed")
@@ -435,45 +453,48 @@ class SearchPage(tk.Frame):
         thread = threading.Thread(target=createCsv())
         thread.start()
 
-    def createWalks(self, data5, data1, data2, data4, name):
-        csv5 = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
-        csv1 = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
-        csv2 = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
-        csv4 = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
+    def createWalks(self, data5, data1, data2, data4, name, intervals):
+        columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label']
+        csv5 = pd.DataFrame(columns=columns)
+        csv1 = pd.DataFrame(columns=columns)
+        csv2 = pd.DataFrame(columns=columns)
+        csv4 = pd.DataFrame(columns=columns)
 
-        i_1 = 4
-        i_2 = 3
-        i_4 = 1
+        i_1 = data1.shape[0] - data5.shape[0]
+        i_2 = data2.shape[0] - data5.shape[0]
+        i_4 = data5.shape[0] - data5.shape[0]
         count = 0
 
         for i in range(0, len(data5)):
-            if count < 20:
-                csv5 = csv5.append(data5.iloc[i], ignore_index=True)
-                csv4 = csv4.append(data4.iloc[i_4], ignore_index=True)
-                csv2 = csv2.append(data2.iloc[i_2], ignore_index=True)
-                csv1 = csv1.append(data1.iloc[i_1], ignore_index=True)
+            print(i)
+            if count < intervals:
+                csv5 = pd.concat([csv5, pd.DataFrame([data5.iloc[i]], columns=columns)], ignore_index=True)
+                csv4 = pd.concat([csv4, pd.DataFrame([data4.iloc[i_4]], columns=columns)], ignore_index=True)
+                csv2 = pd.concat([csv2, pd.DataFrame([data2.iloc[i_2]], columns=columns)], ignore_index=True)
+                csv1 = pd.concat([csv1, pd.DataFrame([data1.iloc[i_1]], columns=columns)], ignore_index=True)
 
                 count += 1
                 i_1 += 1
                 i_2 += 1
                 i_4 += 1
 
-                if count == 20:
+                if count == intervals:
                     lastData = csv1.iloc[-1, 0]
                     label = csv1.iloc[-1, 7]
-                    nameDir = name + str(lastData) + "_" + str(label)
 
-                    os.mkdir(nameDir)
-                    csv5.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_5.csv", index=False)
-                    csv1.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_1.csv", index=False)
-                    csv2.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_2.csv", index=False)
-                    csv4.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_4.csv", index=False)
+                    path = os.path.join(name, f"{lastData}_{label}")
+                    os.makedirs(path, exist_ok=True)
+
+                    csv5.to_csv(os.path.join(path, f"{lastData}_{label}_day_5.csv"), index=False)
+                    csv1.to_csv(os.path.join(path, f"{lastData}_{label}_day_1.csv"), index=False)
+                    csv2.to_csv(os.path.join(path, f"{lastData}_{label}_day_2.csv"), index=False)
+                    csv4.to_csv(os.path.join(path, f"{lastData}_{label}_day_4.csv"), index=False)
 
             if count > 20:
-                csv5 = csv5.append(data5.iloc[i], ignore_index=True)
-                csv4 = csv4.append(data4.iloc[i_4], ignore_index=True)
-                csv2 = csv2.append(data2.iloc[i_2], ignore_index=True)
-                csv1 = csv1.append(data1.iloc[i_1], ignore_index=True)
+                csv5 = pd.concat([csv5, pd.DataFrame([data5.iloc[i]], columns=columns)], ignore_index=True)
+                csv4 = pd.concat([csv4, pd.DataFrame([data4.iloc[i_4]], columns=columns)], ignore_index=True)
+                csv2 = pd.concat([csv2, pd.DataFrame([data2.iloc[i_2]], columns=columns)], ignore_index=True)
+                csv1 = pd.concat([csv1, pd.DataFrame([data1.iloc[i_1]], columns=columns)], ignore_index=True)
 
                 i_1 += 1
                 i_2 += 1
@@ -486,15 +507,17 @@ class SearchPage(tk.Frame):
 
                 lastData = csv1.iloc[-1, 0]
                 label = csv1.iloc[-1, 7]
-                nameDir = name + str(lastData) + "_" + str(label)
 
-                os.mkdir(nameDir)
-                csv5.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_5.csv", index=False)
-                csv1.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_1.csv", index=False)
-                csv2.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_2.csv", index=False)
-                csv4.to_csv(nameDir + "/" + str(lastData) + "_" + str(label) + "_day_4.csv", index=False)
+                path = os.path.join(name, f"{lastData}_{label}")
+                os.makedirs(path, exist_ok=True)
 
-            if count == 20: count += 1
+                csv5.to_csv(os.path.join(path, f"{lastData}_{label}_day_5.csv"), index=False)
+                csv1.to_csv(os.path.join(path, f"{lastData}_{label}_day_1.csv"), index=False)
+                csv2.to_csv(os.path.join(path, f"{lastData}_{label}_day_2.csv"), index=False)
+                csv4.to_csv(os.path.join(path, f"{lastData}_{label}_day_4.csv"), index=False)
+
+            if count == 20:
+                count += 1
 
     def takeIndex2(self, startIndex, data_div, el):
         date = data_div.iloc[startIndex, 0]
