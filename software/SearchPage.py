@@ -16,6 +16,9 @@ from DataTable import DataTable
 
 from dateutil.relativedelta import relativedelta
 
+import matplotlib.pyplot as plt
+from pyts.image import GramianAngularField
+
 
 class SearchPage(tk.Frame):
     def __init__(self, parent):
@@ -246,14 +249,14 @@ class SearchPage(tk.Frame):
                             if selected_index:
                                 name = self.file_names_listbox.get(self.file_names_listbox.curselection())
                                 name = name[0:name.index(".")]
-                                self.createCsv_with_progress(self.data_table.stored_dataframe, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name, intervals)
+                                self.createCsv_with_progress(self.data_table.stored_dataframe, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name, intervals, var_generation, var_method)
                             else:
                                 tkinter.messagebox.showerror("Error", "No item selected")
                         except tk.TclError as e:
                             print(f"TclError: {e}")
                             tkinter.messagebox.showerror("Error", "An error occurred")
 
-    def createCsv_with_progress(self, data, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name, intervals):
+    def createCsv_with_progress(self, data, startDate, endDate, trainingPercentage, testingPercentage, validationPercentage, name, intervals, var_generation, var_method):
         top = tk.Toplevel()
         top.title('Progress')
 
@@ -287,7 +290,7 @@ class SearchPage(tk.Frame):
             rows = []
             for i in range(startIndex, endIndex):
                 list = [data.iloc[i]]
-                row = row = {'Date': [list[0].iloc[0]], 'Open': [list[0].iloc[1]],
+                row = {'Date': [list[0].iloc[0]], 'Open': [list[0].iloc[1]],
                            'High': [list[0].iloc[2]], 'Low': [list[0].iloc[3]], 'Close': [list[0].iloc[4]],
                            'Adj Close': [list[0].iloc[5]], 'Volume': [list[0].iloc[6]],
                            'Label': [list[0].iloc[7]]}
@@ -402,7 +405,7 @@ class SearchPage(tk.Frame):
                              "result/" + name + "/Walks_interval/WalkTraining_interval/WalkTraining_interval_" + str(i + 1))
                 os.makedirs(path_training_interval, exist_ok=True)
 
-                self.createWalks(data5, data1, data2, data4, path_training_interval, intervals)
+                self.createWalks(data5, data1, data2, data4, path_training_interval, intervals, var_method, var_generation)
 
             desktop_path_walks_interval_validation = os.path.join(os.path.expanduser("~"), "Desktop",
                                                                 "result/" + name + "/Walks_interval/WalkValidation_interval")
@@ -423,7 +426,7 @@ class SearchPage(tk.Frame):
                                                       "result/" + name + "/Walks_interval/WalkValidation_interval/WalkValidation_interval_" + str(
                                                           i + 1))
                 os.makedirs(path_validation_interval, exist_ok=True)
-                self.createWalks(data5, data1, data2, data4, path_validation_interval, intervals)
+                self.createWalks(data5, data1, data2, data4, path_validation_interval, intervals, var_method, var_generation)
 
             desktop_path_walks_interval_testing = os.path.join(os.path.expanduser("~"), "Desktop",
                                                                 "result/" + name + "/Walks_interval/WalkTesting_interval")
@@ -443,7 +446,7 @@ class SearchPage(tk.Frame):
                                                         "result/" + name + "/Walks_interval/WalkTesting_interval/Walktesting_interval_" + str(
                                                             i + 1))
                 os.makedirs(path_testing_interval, exist_ok=True)
-                self.createWalks(data5, data1, data2, data4, path_testing_interval, intervals)
+                self.createWalks(data5, data1, data2, data4, path_testing_interval, intervals, var_method, var_generation)
 
             top.destroy()
             tk.messagebox.showinfo("Success", "Creation completed")
@@ -451,7 +454,7 @@ class SearchPage(tk.Frame):
         thread = threading.Thread(target=createCsv())
         thread.start()
 
-    def createWalks(self, data5, data1, data2, data4, name, intervals):
+    def createWalks(self, data5, data1, data2, data4, name, intervals, var_method, var_generation):
         columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label']
         csv5 = pd.DataFrame(columns=columns)
         csv1 = pd.DataFrame(columns=columns)
@@ -483,10 +486,33 @@ class SearchPage(tk.Frame):
                     path = os.path.join(name, f"{lastData}_{label}")
                     os.makedirs(path, exist_ok=True)
 
-                    csv5.to_csv(os.path.join(path, f"{lastData}_{label}_day_5.csv"), index=False)
-                    csv1.to_csv(os.path.join(path, f"{lastData}_{label}_day_1.csv"), index=False)
-                    csv2.to_csv(os.path.join(path, f"{lastData}_{label}_day_2.csv"), index=False)
-                    csv4.to_csv(os.path.join(path, f"{lastData}_{label}_day_4.csv"), index=False)
+                    name_day_5 = os.path.join(path, f"{lastData}_{label}_day_5")
+                    name_day_1 = os.path.join(path, f"{lastData}_{label}_day_1")
+                    name_day_2 = os.path.join(path, f"{lastData}_{label}_day_2")
+                    name_day_4 = os.path.join(path, f"{lastData}_{label}_day_4")
+
+                    if var_generation == "File":
+                        csv5.to_csv(name_day_5 + ".csv", index=False)
+                        csv1.to_csv(name_day_1 + ".csv", index=False)
+                        csv2.to_csv(name_day_2 + ".csv", index=False)
+                        csv4.to_csv(name_day_4 + ".csv", index=False)
+
+                    if var_generation == "Images":
+                        self.generete_images(csv1, name_day_1, var_method)
+                        self.generete_images(csv2, name_day_2, var_method)
+                        self.generete_images(csv4, name_day_4, var_method)
+                        self.generete_images(csv5, name_day_5, var_method)
+
+                    if var_generation == "Both":
+                        self.generete_images(csv1, name_day_1, var_method)
+                        self.generete_images(csv2, name_day_2, var_method)
+                        self.generete_images(csv4, name_day_4, var_method)
+                        self.generete_images(csv5, name_day_5, var_method)
+
+                        csv5.to_csv(name_day_5 + ".csv", index=False)
+                        csv1.to_csv(name_day_1 + ".csv", index=False)
+                        csv2.to_csv(name_day_2 + ".csv", index=False)
+                        csv4.to_csv(name_day_4 + ".csv", index=False)
 
             if count > 20:
                 csv5 = pd.concat([csv5, pd.DataFrame([data5.iloc[i]], columns=columns)], ignore_index=True)
@@ -509,13 +535,113 @@ class SearchPage(tk.Frame):
                 path = os.path.join(name, f"{lastData}_{label}")
                 os.makedirs(path, exist_ok=True)
 
-                csv5.to_csv(os.path.join(path, f"{lastData}_{label}_day_5.csv"), index=False)
-                csv1.to_csv(os.path.join(path, f"{lastData}_{label}_day_1.csv"), index=False)
-                csv2.to_csv(os.path.join(path, f"{lastData}_{label}_day_2.csv"), index=False)
-                csv4.to_csv(os.path.join(path, f"{lastData}_{label}_day_4.csv"), index=False)
+                name_day_5 = os.path.join(path, f"{lastData}_{label}_day_5")
+                name_day_1 = os.path.join(path, f"{lastData}_{label}_day_1")
+                name_day_2 = os.path.join(path, f"{lastData}_{label}_day_2")
+                name_day_4 = os.path.join(path, f"{lastData}_{label}_day_4")
+
+                if var_generation == "File":
+                    csv5.to_csv(name_day_5 + ".csv", index=False)
+                    csv1.to_csv(name_day_1 + ".csv", index=False)
+                    csv2.to_csv(name_day_2 + ".csv", index=False)
+                    csv4.to_csv(name_day_4 + ".csv", index=False)
+
+                if var_generation == "Images":
+                    self.generete_images(csv1, name_day_1, var_method)
+                    self.generete_images(csv2, name_day_2, var_method)
+                    self.generete_images(csv4, name_day_4, var_method)
+                    self.generete_images(csv5, name_day_5, var_method)
+
+                if var_generation == "Both":
+                    self.generete_images(csv1, name_day_1, var_method)
+                    self.generete_images(csv2, name_day_2, var_method)
+                    self.generete_images(csv4, name_day_4, var_method)
+                    self.generete_images(csv5, name_day_5, var_method)
+
+                    csv5.to_csv(name_day_5 + ".csv", index=False)
+                    csv1.to_csv(name_day_1 + ".csv", index=False)
+                    csv2.to_csv(name_day_2 + ".csv", index=False)
+                    csv4.to_csv(name_day_4 + ".csv", index=False)
 
             if count == 20:
                 count += 1
+
+    def generete_images(self, csv, name, var_method):
+        df_copy = csv.copy()
+        df_copy = df_copy.drop(columns=['Date'])
+
+        # Get the values from the dataframe
+        X = df_copy.iloc[:, 1:].values.T
+
+        # Compute Gramian angular fields
+        if var_method == "GADF":
+            gaf = GramianAngularField(method='difference')
+            X_gaf = gaf.fit_transform(X)
+
+            # Plot the Gramian angular fields without white space
+            fig, ax = plt.subplots(figsize=(6, 6))
+            ax.imshow(X_gaf[0], cmap='rainbow', origin='lower', extent=[0, 1, 0, 1])
+
+            # Remove axis labels and ticks
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+            plt.tight_layout()  # Adjust layout to remove any overlapping
+
+            fig.savefig(name + "_GADF.png", dpi=300, bbox_inches='tight')
+            plt.close(fig)
+
+        if var_method == "GASF":
+            gaf = GramianAngularField(method='summation')
+            X_gaf = gaf.fit_transform(X)
+
+            # Plot the Gramian angular fields without white space
+            fig, ax = plt.subplots(figsize=(6, 6))
+            ax.imshow(X_gaf[0], cmap='rainbow', origin='lower', extent=[0, 1, 0, 1])
+
+            # Remove axis labels and ticks
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+            plt.tight_layout()  # Adjust layout to remove any overlapping
+
+            fig.savefig(name + "_GASF.png", dpi=300, bbox_inches='tight')
+            plt.close(fig)
+
+        if var_method == "Both":
+            gaf = GramianAngularField(method='difference')
+            X_gaf = gaf.fit_transform(X)
+
+            # Plot the Gramian angular fields without white space
+            fig, ax = plt.subplots(figsize=(6, 6))
+            ax.imshow(X_gaf[0], cmap='rainbow', origin='lower', extent=[0, 1, 0, 1])
+
+            # Remove axis labels and ticks
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+            plt.tight_layout()  # Adjust layout to remove any overlapping
+
+            fig.savefig(name + "_GADF.png", dpi=300, bbox_inches='tight')
+
+            plt.close(fig)
+
+            gaf = GramianAngularField(method='summation')
+            X_gaf = gaf.fit_transform(X)
+
+            # Plot the Gramian angular fields without white space
+            fig, ax = plt.subplots(figsize=(6, 6))
+            ax.imshow(X_gaf[0], cmap='rainbow', origin='lower', extent=[0, 1, 0, 1])
+
+            # Remove axis labels and ticks
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+            plt.tight_layout()  # Adjust layout to remove any overlapping
+
+            fig.savefig(name + "_GASF.png", dpi=300, bbox_inches='tight')
+
+            plt.close(fig)
 
     def takeIndex2(self, startIndex, data_div, el):
         date = data_div.iloc[startIndex, 0]

@@ -2,7 +2,6 @@ from tkinter import ttk
 import tkinter as tk
 import pandas as pd
 
-
 class DataTable(ttk.Treeview):
     def __init__(self, parent):
         super().__init__(parent)
