@@ -310,7 +310,6 @@ class SearchPage(tk.Frame):
             for j in range(0, 3):
                 csv = pd.DataFrame(columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
                 list = [data.iloc[startIndex]]
-                #rows = []
 
                 for i in range(startIndex + 1, endIndex):
                     print(i)
@@ -321,7 +320,6 @@ class SearchPage(tk.Frame):
                                'High': [highest], 'Low': [lowest], 'Close': [list[len(list) - 1].iloc[4]],
                                'Adj Close': [list[len(list) - 1].iloc[5]], 'Volume': [sumVolume], 'Label' : [list[len(list) - 1].iloc[7]]}, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Label'])
 
-                        #rows.append(pd.DataFrame(row))
                         csv = pd.concat([csv, row], ignore_index=True)
                         list.pop(0)
 
