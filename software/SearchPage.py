@@ -7,7 +7,6 @@ import tkinter.messagebox
 from tkinterdnd2 import DND_FILES
 
 import pandas as pd
-from DataTable import DataTable
 
 from Controller import Controller
 
@@ -22,16 +21,16 @@ class SearchPage(tk.Frame):
         self.file_names_listbox.bind("<Double-1>", self._display_file)
 
         # Treeview
-        self.data_table = DataTable(parent)
+        self.data_table = self.DataTable(parent)
         self.controller = Controller()
         self.data_table.place(rely=0, relx=0.25, relwidth=0.75, relheight=1)
         self.path_map = {}
 
         # Generate button
-        self.button = tk.Button(parent, text="Generate", command=self.on_button_click_generete, width=20, height=2,
+        self.button_generete = tk.Button(parent, text="Generate", command=self.on_button_click_generete, width=20, height=2,
                                 bd=2,
                                 highlightthickness=2, bg="#a9a9a9")
-        self.button.place(relx=0.17, rely=0.95, anchor="sw")
+        self.button_generete.place(relx=0.17, rely=0.95, anchor="sw")
 
         # Start date edit box
         font = ("Arial", 12)
@@ -149,10 +148,10 @@ class SearchPage(tk.Frame):
         self.radio_button_both_methods.place(relx=0.15, rely=0.9, anchor="sw")
 
         # Label button
-        self.button = tk.Button(parent, text="Create label", command=self.on_button_click_label, width=20, height=2,
+        self.button_label = tk.Button(parent, text="Create label", command=self.on_button_click_label, width=20, height=2,
                                 bd=2,
                                 highlightthickness=2, bg="#a9a9a9")
-        self.button.place(relx=0.08, rely=0.95, anchor="sw")
+        self.button_label.place(relx=0.08, rely=0.95, anchor="sw")
 
     def remove_default_text(self, event, default_text, edit_box):
         if edit_box.get() == default_text:
@@ -380,3 +379,42 @@ class SearchPage(tk.Frame):
             return False, "", ""
 
         return True, startDate, endDate
+
+    class DataTable(ttk.Treeview):
+        def __init__(self, parent):
+            super().__init__(parent)
+            scroll_Y = tk.Scrollbar(self, orient="vertical", command=self.yview)
+            scroll_X = tk.Scrollbar(self, orient="horizontal", command=self.xview)
+            self.configure(yscrollcommand=scroll_Y.set, xscrollcommand=scroll_X.set)
+            scroll_Y.pack(side="right", fill="y")
+            scroll_X.pack(side="bottom", fill="x")
+            self.stored_dataframe = pd.DataFrame()
+
+        def set_datatable(self, dataframe):
+            self.stored_dataframe = dataframe
+            self._draw_table(dataframe)
+
+        def _draw_table(self, dataframe):
+            self.delete(*self.get_children())
+            columns = list(dataframe.columns)
+            self.__setitem__("column", columns)
+            self.__setitem__("show", "headings")
+
+            for col in columns:
+                self.heading(col, text=col)
+
+            df_rows = dataframe.to_numpy().tolist()
+            for row in df_rows:
+                self.insert("", "end", values=row)
+            return None
+
+        def find_value(self, pairs):
+            # pairs is a dictionary
+            new_df = self.stored_dataframe
+            for col, value in pairs.items():
+                query_string = f"{col}.str.contains('{value}')"
+                new_df = new_df.query(query_string, engine="python")
+            self._draw_table(new_df)
+
+        def reset_table(self):
+            self._draw_table(self.stored_dataframe)
